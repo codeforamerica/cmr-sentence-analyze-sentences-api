@@ -6,5 +6,165 @@ info:
 servers:
 - url: https://virtserver.swaggerhub.com/MHAMLIN/analyze-sentences/0.1.1
   description: SwaggerHub API Auto Mocking
-paths: {}
-components: {}
+paths:
+  /analyze-sentences/jobs:
+    post:
+      summary: Create a job to analyze unstructured sentence data
+      requestBody:
+        description: Information about the job to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobInformation'
+        required: true
+      responses:
+        "201":
+          description: Created
+  /analyze-sentences/jobs/{jobId}:
+    get:
+      description: Returns information about an analysis Job
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sentence'
+components:
+  schemas:
+    JobInformation:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the object
+          format: uuid
+    Sentence:
+      required:
+      - data_source
+      - id
+      - version
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sentence
+          format: uuid
+        version:
+          type: integer
+          description: Version of the sentence object instance
+          default: 1
+        incarceration:
+          $ref: '#/components/schemas/IncarcerationSentenceType'
+        other:
+          type: array
+          items:
+            type: string
+            description: Other aspects of the sentence.
+            enum:
+            - fine
+            - fee
+            - community_service
+            - rehab
+            - dui_school
+            - drug_fund
+            - forfeit_weapon
+            - drivers_license_suspended
+            - drivers_license_revoked
+            - other_treatment
+        data_source:
+          $ref: '#/components/schemas/DataSourceType'
+        confidence:
+          $ref: '#/components/schemas/ConfidenceType'
+    IncarcerationSentenceType:
+      required:
+      - type
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - determinate
+          - indeterminate
+          - life
+          - death
+        duration:
+          description: Duration is ignored when type is life or death. Duration.maximum
+            is ignored when type is determinate.
+          allOf:
+          - $ref: '#/components/schemas/DurationType'
+    ConfidenceType:
+      type: object
+      properties:
+        score:
+          maximum: 100
+          minimum: 0
+          type: integer
+        level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+        factors:
+          type: array
+          description: List of factors that contributed to lowering the confidence
+            score
+          items:
+            type: string
+            enum:
+            - multiple_counts
+            - conditional
+            - suspended
+            - deferred
+            - probation
+            - parole
+            - time_served
+    DataSourceType:
+      required:
+      - id
+      - raw_text
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sentence in the source system
+        state:
+          pattern: "^\\d{2}"
+          type: string
+          description: State FIPS code
+        county:
+          pattern: "^\\d{5}"
+          type: string
+          description: County FIPS code
+        type:
+          type: string
+          default: unknown
+          enum:
+          - law_enforcement
+          - courts
+          - dept_of_corrections
+          - criminal_history_repo
+          - community_corrections_agency
+          - other
+          - unknown
+        raw_text:
+          type: string
+          description: Raw (unstructured) text string from the source system
+      description: Source of the sentencing data
+    DurationType:
+      type: object
+      properties:
+        minimum:
+          type: integer
+        maximum:
+          type: integer
+        type:
+          type: string
+          default: days
+          enum:
+          - days
+          - months
+          - years
